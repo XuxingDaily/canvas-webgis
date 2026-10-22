@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="小谷围岛导航与多点游览规划" />
+    <title>小谷围岛导航</title>
+  </head>
+  <body>
+    <div id="app" class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">N</span>
+          <div>
+            <strong>小谷围岛导航</strong>
+            <span>Local spatial routing lab</span>
+          </div>
+        </div>
+        <div class="topbar-meta">
+          <span class="status-dot"></span>
+          <span id="system-status">静态地图准备中</span>
+        </div>
+      </header>
+
+      <aside class="sidebar">
+        <nav class="tabs" aria-label="功能导航">
+          <button class="tab active" data-panel="route-panel">两点路线</button>
+          <button class="tab" data-panel="tour-panel">多点游览</button>
+          <button class="tab" data-panel="poi-panel">POI / 吸附</button>
+          <button class="tab" data-panel="layer-panel">图层管理</button>
+        </nav>
+
+        <section id="route-panel" class="panel active">
+          <div class="panel-heading">
+            <p class="eyebrow">ROUTE</p>
+            <h1>规划一条路线</h1>
+            <p>从搜索结果中选择起点和终点，后端负责道路吸附与 pgRouting 寻路。</p>
+          </div>
+
+          <div class="field autocomplete" data-autocomplete="route-origin">
+            <label for="route-origin">起点 POI</label>
+            <div class="input-with-action">
+              <input id="route-origin" type="search" autocomplete="off" placeholder="搜索 POI 或地图点选" />
+              <button id="pick-route-origin" class="pick-button" type="button">地图点选</button>
+            </div>
+            <div class="suggestions" role="listbox"></div>
+          </div>
+          <button id="swap-route" class="icon-button" type="button" title="交换起终点">⇅ 交换起终点</button>
+          <div class="field autocomplete" data-autocomplete="route-destination">
+            <label for="route-destination">终点 POI</label>
+            <div class="input-with-action">
+              <input id="route-destination" type="search" autocomplete="off" placeholder="搜索 POI 或地图点选" />
+              <button id="pick-route-destination" class="pick-button" type="button">地图点选</button>
+            </div>
+            <div class="suggestions" role="listbox"></div>
+          </div>
+
+          <div class="option-grid">
+            <div class="field">
+              <label for="route-mode">出行方式</label>
+              <select id="route-mode">
+                <option value="WALKING">步行</option>
+                <option value="DRIVING">驾车</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="route-strategy">优化目标</label>
+              <select id="route-strategy">
+                <option value="FASTEST">最快</option>
+                <option value="SHORTEST">最短</option>
+              </select>
+            </div>
+          </div>
+          <button id="route-submit" class="primary-button" type="button">开始规划</button>
+          <div id="route-result" class="result-card empty">选择两个 POI 后开始规划。</div>
+        </section>
+
+        <section id="tour-panel" class="panel">
+          <div class="panel-heading">
+            <p class="eyebrow">TOUR</p>
+            <h1>安排多点游览</h1>
+            <p>添加 2～12 个地点，由后端计算真实路网成本矩阵并优化访问顺序。</p>
+          </div>
+          <div class="field autocomplete" data-autocomplete="tour-stop">
+            <label for="tour-stop">添加游览点</label>
+            <input id="tour-stop" type="search" autocomplete="off" placeholder="搜索后点击添加" />
+            <div class="suggestions" role="listbox"></div>
+          </div>
+          <div class="button-row">
+            <button id="tour-add" class="secondary-button" type="button">添加所选地点</button>
+            <button id="pick-tour-stop" class="secondary-button pick-button" type="button">地图点选添加</button>
+          </div>
+          <ol id="tour-stops" class="stop-list"></ol>
+          <div class="option-grid">
+            <div class="field">
+              <label for="tour-mode">出行方式</label>
+              <select id="tour-mode">
+                <option value="WALKING">步行</option>
+                <option value="DRIVING">驾车</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="tour-strategy">优化目标</label>
+              <select id="tour-strategy">
+                <option value="FASTEST">最快</option>
+                <option value="SHORTEST">最短</option>
+              </select>
+            </div>
+          </div>
+          <label class="check-row">
+            <input id="tour-round-trip" type="checkbox" checked />
+            <span>返回第一个游览点（闭环）</span>
+          </label>
+          <button id="tour-submit" class="primary-button" type="button">优化游览顺序</button>
+          <div id="tour-result" class="result-card empty">至少添加两个游览点。</div>
+        </section>
+
+        <section id="poi-panel" class="panel">
+          <div class="panel-heading">
+            <p class="eyebrow">EXPLORE</p>
+            <h1>POI 与道路吸附</h1>
+            <p>按关键词或局部坐标查询，同时可以直接测试道路吸附接口。</p>
+          </div>
+          <div class="field">
+            <label for="poi-keyword">POI 关键词</label>
+            <div class="inline-field">
+              <input id="poi-keyword" type="search" placeholder="例如：大学" />
+              <button id="poi-search" class="compact-button" type="button">查询</button>
+            </div>
+          </div>
+          <div id="poi-results" class="poi-results"></div>
+
+          <div class="section-divider"></div>
+          <h2 class="subheading">附近 POI / 道路吸附</h2>
+          <div class="coordinate-grid">
+            <div class="field"><label for="local-x">X</label><input id="local-x" type="number" step="any" value="50534.254573" /></div>
+            <div class="field"><label for="local-y">Y</label><input id="local-y" type="number" step="any" value="22086.360885" /></div>
+          </div>
+          <div class="coordinate-grid">
+            <div class="field">
+              <label for="nearby-radius">查询半径（局部单位）</label>
+              <input id="nearby-radius" type="number" min="0.01" step="any" value="500" />
+            </div>
+            <div class="field">
+              <label for="nearby-limit">最大返回数量</label>
+              <input id="nearby-limit" type="number" min="1" max="10000" step="1" value="20" />
+            </div>
+          </div>
+          <button id="pick-nearby-center" class="secondary-button pick-button full-width-button" type="button">地图点选查询中心</button>
+          <div class="button-row">
+            <button id="nearby-search" class="secondary-button" type="button">查询附近 POI</button>
+            <button id="snap-search" class="secondary-button" type="button">吸附道路</button>
+          </div>
+          <div id="poi-tool-result" class="result-card empty">坐标单位与数据库 geom_local 一致。</div>
+        </section>
+
+        <section id="layer-panel" class="panel layers-panel">
+          <div class="panel-heading">
+            <p class="eyebrow">LAYERS</p>
+            <h1>图层管理</h1>
+            <p>独立控制基础地图和业务结果图层的显示状态。</p>
+          </div>
+          <div id="layer-controls" class="layer-controls"></div>
+        </section>
+      </aside>
+
+      <main class="map-stage">
+        <div id="map" class="map-canvas" aria-label="导航地图"></div>
+        <div class="map-badge">LOCAL COORDINATE · <span id="viewport-poi-status">POI 加载中</span></div>
+        <div id="map-pick-tip" class="map-pick-tip">在地图上单击选择位置，拖动仍用于平移</div>
+        <div id="map-legend" class="legend">
+          <div class="legend-base">
+            <span><i class="legend-line road"></i>道路</span>
+            <span><i class="legend-poi"></i>POI</span>
+            <span><i class="legend-cluster">3</i>聚类</span>
+            <span><i class="legend-selected"></i>选中 POI</span>
+            <span><i class="legend-selected-cluster">3</i>选中聚类</span>
+            <span><i class="legend-dot"></i>路径点</span>
+          </div>
+          <div id="route-legend-items" class="route-legend-items"></div>
+        </div>
+        <div class="map-actions">
+          <button id="clear-map" class="map-action" type="button">清除结果</button>
+        </div>
+        <aside id="feature-detail" class="feature-detail" hidden>
+          <button id="feature-detail-close" class="feature-detail-close" type="button" aria-label="关闭详情">×</button>
+          <p id="feature-detail-type" class="eyebrow">SELECTED</p>
+          <h2 id="feature-detail-title">选中对象</h2>
+          <div id="feature-detail-body" class="feature-detail-body"></div>
+        </aside>
+        <div id="toast" class="toast" role="status" aria-live="polite"></div>
+      </main>
+    </div>
+    <script type="module" src="/app/main.ts"></script>
+  </body>
+</html>
