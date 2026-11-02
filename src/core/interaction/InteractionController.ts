@@ -19,10 +19,14 @@ export class InteractionController {
         this.onWheel = this.onWheel.bind(this);
         this.onDoubleClick = this.onDoubleClick.bind(this);
         this.onResize = this.onResize.bind(this);
+        this.onWindowMouseUp = this.onWindowMouseUp.bind(this);
         this.attach();
     }
 
     private drag = { active: false, moved: false, x: 0, y: 0 };
+    private wheelDelta = 0;
+    private wheelPoint = { x: 0, y: 0 };
+    private wheelFrame?: number;
 
     public destroy(): void {
         this.canvas.removeEventListener("mousedown", this.onMouseDown);
@@ -31,6 +35,8 @@ export class InteractionController {
         this.canvas.removeEventListener("wheel", this.onWheel);
         this.canvas.removeEventListener("dblclick", this.onDoubleClick);
         window.removeEventListener("resize", this.onResize);
+        window.removeEventListener("mouseup", this.onWindowMouseUp);
+        if (this.wheelFrame !== undefined) cancelAnimationFrame(this.wheelFrame);
     }
 
     private attach(): void {
@@ -40,6 +46,7 @@ export class InteractionController {
         this.canvas.addEventListener("wheel", this.onWheel, { passive: false });
         this.canvas.addEventListener("dblclick", this.onDoubleClick);
         window.addEventListener("resize", this.onResize);
+        window.addEventListener("mouseup", this.onWindowMouseUp);
     }
 
     private onMouseDown(event: MouseEvent): void {
@@ -51,6 +58,10 @@ export class InteractionController {
 
     private onMouseMove(event: MouseEvent): void {
         if (!this.drag.active) return;
+        if ((event.buttons & 1) === 0) {
+            this.drag.active = false;
+            return;
+        }
         const deltaX = event.clientX - this.drag.x;
         const deltaY = event.clientY - this.drag.y;
         if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) this.drag.moved = true;
@@ -71,10 +82,22 @@ export class InteractionController {
     private onWheel(event: WheelEvent): void {
         event.preventDefault();
         if (event.deltaY === 0) return;
-        const deltaZoom = event.deltaY < 0 ? 1 : -1;
-        if (this.view.zoomAt({ x: event.offsetX, y: event.offsetY }, deltaZoom) !== 0) {
-            this.callbacks.onViewChange();
-        }
+        const unit = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16
+            : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? this.canvas.clientHeight
+            : 1;
+        this.wheelDelta += event.deltaY * unit;
+        this.wheelPoint = { x: event.offsetX, y: event.offsetY };
+        if (this.wheelFrame !== undefined) return;
+
+        this.wheelFrame = requestAnimationFrame(() => {
+            this.wheelFrame = undefined;
+            const deltaZoom = Math.max(-1, Math.min(1, -this.wheelDelta / 100));
+            this.wheelDelta = 0;
+            if (Math.abs(deltaZoom) < 0.01) return;
+            if (this.view.zoomAt(this.wheelPoint, deltaZoom) !== 0) {
+                this.callbacks.onViewChange();
+            }
+        });
     }
 
     private onDoubleClick(event: MouseEvent): void {
@@ -85,4 +108,7 @@ export class InteractionController {
     }
 
     private onResize(): void { this.callbacks.onResize(); }
+
+    private onWindowMouseUp(): void { this.drag.active = false; }
+
 }

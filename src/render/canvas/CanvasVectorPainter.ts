@@ -13,7 +13,7 @@ import { LineSymbol } from "../../core/style/symbol/LineSymbol";
 import { PointSymbol } from "../../core/style/symbol/PointSymbol";
 import { Symbol } from "../../core/style/symbol/Symbol";
 
-type Coordinate = number[];
+export type Coordinate = number[];
 
 /** Canvas 矢量绘制后端：统一处理要素状态、几何绘制和拾取。 */
 export class CanvasVectorPainter {
@@ -39,12 +39,10 @@ export class CanvasVectorPainter {
                 );
                 break;
             case GeometryType.Polyline:
-                this.drawLine(ctx, (geometry as Polyline).coordinates, symbol as LineSymbol);
+                this.drawLines(ctx, [(geometry as Polyline).coordinates], symbol as LineSymbol);
                 break;
             case GeometryType.MultiPolyline:
-                (geometry as MultiPolyline).coordinates.forEach(
-                    coordinates => this.drawLine(ctx, coordinates, symbol as LineSymbol)
-                );
+                this.drawLines(ctx, (geometry as MultiPolyline).coordinates, symbol as LineSymbol);
                 break;
             case GeometryType.Polygon:
                 this.drawPolygon(ctx, (geometry as Polygon).coordinates, symbol as FillSymbol);
@@ -126,17 +124,26 @@ export class CanvasVectorPainter {
         ctx.restore();
     }
 
-    private drawLine(ctx: CanvasRenderingContext2D, coordinates: Coordinate[], symbol: LineSymbol): void {
+    private drawLines(ctx: CanvasRenderingContext2D, lines: Coordinate[][], symbol: LineSymbol): void {
         const style = symbol ?? new LineSymbol();
-        const points = coordinates.map(point => this.toScreen(ctx, point));
-        if (points.length === 0) return;
+        const matrix = ctx.getTransform();
+        if (lines.length === 0) return;
         ctx.save();
         ctx.resetTransform();
         ctx.beginPath();
         ctx.strokeStyle = style.strokeStyle;
         ctx.lineWidth = style.lineWidth;
+        ctx.lineCap = style.lineCap;
+        ctx.lineJoin = style.lineJoin;
         ctx.setLineDash([...style.dash]);
-        points.forEach(([x, y], index) => index === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
+        lines.forEach(coordinates => {
+            coordinates.forEach(([localX, localY], index) => {
+                const x = matrix.a * localX + matrix.c * localY + matrix.e;
+                const y = matrix.b * localX + matrix.d * localY + matrix.f;
+                if (index === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+        });
         ctx.stroke();
         ctx.restore();
     }
@@ -152,10 +159,21 @@ export class CanvasVectorPainter {
             ctx.closePath();
         });
         ctx.fillStyle = style.fillStyle;
-        ctx.strokeStyle = style.strokeStyle;
-        ctx.lineWidth = style.lineWidth;
         ctx.fill("evenodd");
-        ctx.stroke();
+        // Adjacent MVT polygons are rasterized independently, so their shared
+        // tile edge can expose a one-device-pixel anti-aliasing crack. A thin
+        // same-colour cover stroke closes that crack without drawing a visible
+        // boundary; explicit polygon outlines still use their configured style.
+        if (style.lineWidth > 0) {
+            ctx.strokeStyle = style.strokeStyle;
+            ctx.lineWidth = style.lineWidth;
+            ctx.stroke();
+        } else {
+            ctx.strokeStyle = style.fillStyle;
+            ctx.lineWidth = 1.25;
+            ctx.lineJoin = "round";
+            ctx.stroke();
+        }
         ctx.restore();
     }
 

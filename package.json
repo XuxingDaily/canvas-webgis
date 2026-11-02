@@ -6,11 +6,19 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "bench:spatial": "vitest run --config vitest.benchmark.config.ts",
+    "bench:render": "powershell -ExecutionPolicy Bypass -File benchmarks\\run-render-bench.ps1",
+    "docs": "typedoc",
+    "docs:check": "typedoc --emit none --treatWarningsAsErrors"
   },
   "devDependencies": {
+    "typedoc": "^0.28.20",
     "typescript": "^5.7.3",
-    "vite": "^6.1.0"
+    "vite": "6.4.5",
+    "vitest": "5.0.5"
   },
   "dependencies": {
     "@mapbox/vector-tile": "^3.0.0",

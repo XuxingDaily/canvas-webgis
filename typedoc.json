@@ -1,0 +1,45 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": [
+    "src/core/map/index.ts",
+    "src/core/geometry/index.ts",
+    "src/core/feature/index.ts",
+    "src/core/style/index.ts",
+    "src/core/layer/index.ts",
+    "src/core/tile/index.ts",
+    "src/core/view/index.ts",
+    "src/core/events/index.ts",
+    "src/core/interaction/index.ts",
+    "src/core/label/index.ts",
+    "src/format/index.ts",
+    "src/render/canvas/index.ts"
+  ],
+  "entryPointStrategy": "resolve",
+  "tsconfig": "tsconfig.typedoc.json",
+  "out": "docs/api",
+  "name": "轻量级 Canvas WebGIS 渲染库",
+  "includeVersion": true,
+  "readme": "docs/typedoc-home.md",
+  "projectDocuments": [
+    "docs/getting-started-and-examples.md",
+    "docs/api-reference.md",
+    "docs/architecture.md",
+    "docs/frontend-testing-evidence.md"
+  ],
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeInternal": true,
+  "excludeExternals": true,
+  "disableSources": true,
+  "cleanOutputDir": true,
+  "searchInComments": true,
+  "searchInDocuments": true,
+  "highlightLanguages": ["typescript", "html", "powershell", "text"],
+  "markdownLinkExternal": true,
+  "sourceLinkExternal": true,
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": false
+  }
+}

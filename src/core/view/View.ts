@@ -82,6 +82,16 @@ export class View {
         return appliedDelta;
     }
 
+    /** Preserve map scale and center when the canvas backing size changes. */
+    public centerAt(coordinate: number[], size: ViewSize): void {
+        const matrix = this._transform;
+        this._transform = new DOMMatrix([
+            matrix.a, matrix.b, matrix.c, matrix.d,
+            size.width / 2 - matrix.a * coordinate[0],
+            size.height / 2 - matrix.d * coordinate[1]
+        ]);
+    }
+
     public getExtent(size: ViewSize): Extent {
         const topLeft = this.toCoordinate([0, 0]);
         const bottomRight = this.toCoordinate([size.width, size.height]);
@@ -116,4 +126,5 @@ export class View {
     private clampZoom(zoom: number): number {
         return Math.max(this._minZoom, Math.min(this._maxZoom, zoom));
     }
+
 }

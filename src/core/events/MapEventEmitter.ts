@@ -4,7 +4,7 @@ export interface MapEvents {
     click: number[];
 }
 
-type EventHandler<T> = (event: T) => void;
+export type EventHandler<T> = (event: T) => void;
 
 /** 轻量、类型安全的地图事件中心。 */
 export class MapEventEmitter {

@@ -1,3 +1,4 @@
+/** @module Style */
 export * from "./symbol/Symbol";
 export * from "./symbol/PointSymbol";
 export * from "./symbol/LetterSymbol";

@@ -1,6 +1,7 @@
 import { LocalTileGrid, TileCoordinate } from "../LocalTileGrid";
 import { TileCache } from "../TileCache";
-import { DecodedVectorTile, VectorTileLoader } from "./VectorTileLoader";
+import { DecodedVectorTile } from "../../../format/mvt/MvtAdapter";
+import { VectorTileLoader } from "./VectorTileLoader";
 
 export interface VectorTileSourceOptions {
     urlTemplate: string;
@@ -18,7 +19,10 @@ export class VectorTileSource {
     public readonly grid: LocalTileGrid;
     private readonly loader: VectorTileLoader;
     private readonly cache: TileCache<DecodedVectorTile>;
-    private readonly loading = new Map<string, Promise<DecodedVectorTile>>();
+    private readonly loading = new Map<string, {
+        task: Promise<DecodedVectorTile>;
+        controller: AbortController;
+    }>();
     private readonly retryAfter = new Map<string, number>();
 
     public constructor(options: VectorTileSourceOptions) {
@@ -34,30 +38,60 @@ export class VectorTileSource {
         return this.cache.get(this.grid.key(tile));
     }
 
+    /** Find the closest cached ancestor while a newly selected zoom is loading. */
+    public getCachedAncestor(tile: TileCoordinate): { tile: TileCoordinate; decoded: DecodedVectorTile } | undefined {
+        for (let z = tile.z - 1; z >= this.grid.minZoom; z -= 1) {
+            const divisor = Math.pow(2, tile.z - z);
+            const parent = {
+                z,
+                x: Math.floor(tile.x / divisor),
+                y: Math.floor(tile.y / divisor)
+            };
+            const decoded = this.cache.get(this.grid.key(parent));
+            if (decoded !== undefined) return { tile: parent, decoded };
+        }
+        return undefined;
+    }
+
     public load(tile: TileCoordinate): Promise<DecodedVectorTile> | undefined {
         const key = this.grid.key(tile);
         const existing = this.loading.get(key);
-        if (existing) return existing;
+        if (existing) return existing.task;
         if ((this.retryAfter.get(key) ?? 0) > Date.now()) return undefined;
 
-        const task = this.loader.load(tile)
+        const controller = new AbortController();
+        const task = this.loader.load(tile, controller.signal)
             .then((decoded) => {
+                if (controller.signal.aborted) return decoded;
                 this.cache.set(key, decoded);
                 this.retryAfter.delete(key);
                 return decoded;
             })
             .catch((error: unknown) => {
+                if (error instanceof DOMException && error.name === "AbortError") throw error;
                 this.retryAfter.set(key, Date.now() + 5000);
                 console.error(`加载矢量瓦片 ${key} 失败`, error);
                 throw error;
             })
-            .finally(() => this.loading.delete(key));
+            .finally(() => {
+                if (this.loading.get(key)?.task === task) this.loading.delete(key);
+            });
 
-        this.loading.set(key, task);
+        this.loading.set(key, { task, controller });
         return task;
     }
 
+    /** Cancel requests and decoding work that no longer belongs to the viewport. */
+    public retainLoading(tiles: readonly TileCoordinate[]): void {
+        const active = new Set(tiles.map(tile => this.grid.key(tile)));
+        this.loading.forEach(({ controller }, key) => {
+            if (!active.has(key)) controller.abort();
+        });
+    }
+
     public clearCache(): void {
+        this.loading.forEach(({ controller }) => controller.abort());
+        this.loading.clear();
         this.cache.clear();
         this.retryAfter.clear();
     }

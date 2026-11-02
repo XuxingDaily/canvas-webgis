@@ -38,17 +38,35 @@ export class VectorTileLayer extends Layer {
         const tileZoom = this.source.grid.zoomForScale(ctx.getTransform().a);
         if (tileZoom < this.minZoom || tileZoom > this.maxZoom) return;
 
-        for (const tile of this.source.grid.tilesForExtent(viewExtent, tileZoom)) {
+        const ready: Array<{ tile: TileCoordinate; decoded: ReturnType<VectorTileSource["getCached"]> }> = [];
+        const fallback = new Map<string, { tile: TileCoordinate; decoded: NonNullable<ReturnType<VectorTileSource["getCached"]>> }>();
+        const allowPolygonFallback = !["road", "boundary_outline"].includes(this.sourceLayer);
+
+        const tiles = this.source.grid.tilesForExtent(viewExtent, tileZoom);
+        this.source.retainLoading(tiles);
+        for (const tile of tiles) {
             const decoded = this.source.getCached(tile);
             if (decoded !== undefined) {
-                this.drawTile(ctx, viewExtent, tile, decoded.get(this.sourceLayer) ?? []);
+                ready.push({ tile, decoded });
             } else {
+                if (allowPolygonFallback) {
+                    const ancestor = this.source.getCachedAncestor(tile);
+                    if (ancestor) fallback.set(this.source.grid.key(ancestor.tile), ancestor);
+                }
                 const task = this.source.load(tile);
                 if (task) void task
                     .then((): void => this.requestRender())
                     .catch((): void => undefined);
             }
         }
+
+        // Draw each cached parent once, then replace its ready children on top.
+        fallback.forEach(({ tile, decoded }) => {
+            this.drawTile(ctx, viewExtent, tile, decoded.get(this.sourceLayer) ?? []);
+        });
+        ready.forEach(({ tile, decoded }) => {
+            if (decoded) this.drawTile(ctx, viewExtent, tile, decoded.get(this.sourceLayer) ?? []);
+        });
     }
 
     public clearCache(): void { this.source.clearCache(); }
@@ -59,14 +77,12 @@ export class VectorTileLayer extends Layer {
         tile: TileCoordinate,
         features: Feature[]
     ): void {
-        const bounds = this.source.grid.tileExtent(tile);
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(bounds.xmin, bounds.ymin, bounds.xmax - bounds.xmin, bounds.ymax - bounds.ymin);
-        ctx.clip();
+        // ST_AsMVTGeom already clips every geometry and includes a 64-unit
+        // render buffer. A second Canvas clip creates anti-aliased cracks at
+        // tile borders and cuts off that buffer, so draw the decoded geometry
+        // directly and let adjacent buffered tiles overlap by a fraction.
         features.forEach(feature => {
             this.featurePainter.drawFeature(ctx, feature, this.renderer.getSymbol(feature), viewExtent);
         });
-        ctx.restore();
     }
 }

@@ -12,6 +12,7 @@ export interface MapOptions {
     zoom?: number;
     minZoom?: number;
     maxZoom?: number;
+    extent?: Extent;
 }
 
 /** 地图门面：对外提供统一 API，对内协调视图、图层、渲染与交互模块。 */
@@ -21,7 +22,11 @@ export class Map {
         if (!this._container) throw new Error(`地图容器不存在：${config.target}`);
 
         this._canvas = document.createElement("canvas");
-        this._canvas.style.cssText = "position: absolute; height: 100vh; width: 100vw;";
+        // CSS pixels and the canvas backing size must describe the same map
+        // viewport. Using 100vw here included the left sidebar, so wheel-event
+        // offsets and the view transform used different widths and each zoom
+        // pushed the map farther away from the pointer.
+        this._canvas.style.cssText = "position: absolute; inset: 0; width: 100%; height: 100%; display: block;";
         this.resizeCanvas();
         this._container.appendChild(this._canvas);
         this._ctx = this._canvas.getContext("2d") as CanvasRenderingContext2D;
@@ -36,7 +41,7 @@ export class Map {
         this._renderer = new CanvasMapRenderer(this._ctx);
         this._layerExtent = this.getLayerExtent();
 
-        this._view.fit(this._layerExtent, this.getSize(), this._view.zoom);
+        this._view.fit(config.extent ?? this._layerExtent, this.getSize(), this._view.zoom);
         this._viewExtent = this.getViewExtent();
         this._center = View.getCenter(this._viewExtent);
 
@@ -61,6 +66,8 @@ export class Map {
     private _viewExtent: Extent;
     private _layerExtent: Extent;
     private _renderPending = false;
+    private _viewStateDirty = false;
+    private _renderFrame?: number;
 
     public get container(): HTMLDivElement { return this._container; }
     public get ctx(): CanvasRenderingContext2D { return this._ctx; }
@@ -98,16 +105,26 @@ export class Map {
     }
 
     public redraw(): void {
-        this.updateViewState();
-        this.renderLayers();
+        this._viewStateDirty = true;
+        this.scheduleRender();
     }
 
     /** 动态图层使用的轻量重绘入口，不发送 extent 事件。 */
     public requestRender(): void {
+        this.scheduleRender();
+    }
+
+    /** 合并同一屏幕帧内的交互和图层更新，始终使用最新的视图变换绘制。 */
+    private scheduleRender(): void {
         if (this._renderPending) return;
         this._renderPending = true;
-        requestAnimationFrame(() => {
+        this._renderFrame = requestAnimationFrame(() => {
             this._renderPending = false;
+            this._renderFrame = undefined;
+            if (this._viewStateDirty) {
+                this._viewStateDirty = false;
+                this.updateViewState();
+            }
             this.renderLayers();
         });
     }
@@ -177,6 +194,10 @@ export class Map {
     }
 
     public destroy(): void {
+        if (this._renderFrame !== undefined) cancelAnimationFrame(this._renderFrame);
+        this._renderFrame = undefined;
+        this._renderPending = false;
+        this._viewStateDirty = false;
         this._interaction.destroy();
         this._layers.getAll().forEach(layer => layer.setInvalidateHandler(undefined));
         this._canvas.remove();
@@ -210,8 +231,9 @@ export class Map {
     }
 
     private handleResize(): void {
+        const center = View.getCenter(this.getViewExtent());
         this.resizeCanvas();
-        this._view.fit(this._layerExtent, this.getSize(), this.zoom);
+        this._view.centerAt(center, this.getSize());
         this.redraw();
     }
 

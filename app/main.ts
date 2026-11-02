@@ -3,11 +3,16 @@ import "./styles.css";
 import { searchNearbyPois, searchPois, searchViewportPois } from "./api/poi";
 import { planRoute, planTour, snapToRoad } from "./api/routing";
 import type { LocalPoint, Poi, RouteStrategy, TravelMode, Waypoint } from "./api/types";
-import { StaticGeoJsonDataSource } from "./map/data/StaticGeoJsonDataSource";
 import { VectorTileDataSource } from "./map/data/VectorTileDataSource";
-import { CompositeMapDataSource } from "./map/data/CompositeMapDataSource";
-import { STATIC_LAYER_CATALOG } from "./map/data/staticLayerCatalog";
-import { FillSymbol, GeometryType, LineSymbol, SimpleRenderer } from "../src/index";
+import {
+  CategoryRenderer,
+  CategoryRendererItem,
+  Field,
+  FillSymbol,
+  GeometryType,
+  LineSymbol,
+  SimpleRenderer
+} from "../src/index";
 import { MAP_LAYER_CONTROLS, MapScene, ROUTE_COLOR, tourLegColor, type PoiMapTarget } from "./map/MapScene";
 import { PoiAutocomplete } from "./ui/Autocomplete";
 import { formatDistance, formatDuration, requiredNumber } from "./ui/format";
@@ -31,8 +36,17 @@ function coordinateLabel(point: LocalPoint): string {
 
 function setLoading(button: HTMLButtonElement, loading: boolean, label: string): void {
   button.disabled = loading;
-  button.dataset.defaultLabel ??= button.textContent ?? label;
-  button.textContent = loading ? label : button.dataset.defaultLabel;
+  button.dataset.defaultHtml ??= button.innerHTML;
+  if (loading) button.textContent = label;
+  else button.innerHTML = button.dataset.defaultHtml;
+}
+
+function travelModeLabel(mode: TravelMode): string {
+  return mode === "DRIVING" ? "驾车" : "步行";
+}
+
+function strategyLabel(strategy: RouteStrategy): string {
+  return strategy === "SHORTEST" ? "距离优先" : "时间优先";
 }
 
 function resultCard(id: string, html: string, isError = false): void {
@@ -144,6 +158,11 @@ function showFeatureDetail(
 function showPoiDetail(poi: Poi): void {
   showFeatureDetail("SELECTED POI", poi.name, [
     ["POI ID", String(poi.id)],
+    ["源数据 ID", poi.sourceId || "-"],
+    ["类别", poi.category || poi.basicCategory || "未分类"],
+    ["基础类别", poi.basicCategory || "-"],
+    ["地址", poi.address || "暂无地址"],
+    ["置信度", poi.confidence == null ? "-" : poi.confidence.toFixed(3)],
     ["坐标", `${poi.location.x.toFixed(3)}, ${poi.location.y.toFixed(3)}`],
     ["说明", poi.context || "暂无说明"],
     ["数据版本", String(poi.dataVersion ?? "-")]
@@ -170,38 +189,82 @@ function showPoiTargetDetail(target: PoiMapTarget): void {
 }
 
 async function bootstrap(): Promise<void> {
-  const vectorLayerNames = new Set([
-    "公园绿地",
-    "行政边界",
-    "外围水面",
-    "内部水面",
-    "生活区",
-    "教学区",
-    "快速道路",
-    "道路"
+  const surfaceClass = new Field("class");
+  const landcoverRenderer = new CategoryRenderer(surfaceClass, [
+    new CategoryRendererItem("forest", new FillSymbol(0, "#a8c9a1", "#bdd7b5")),
+    new CategoryRendererItem("park", new FillSymbol(0, "#b8d5a5", "#cce2ba")),
+    new CategoryRendererItem("residential", new FillSymbol(0, "#d8d5ce", "#e6e3dc")),
+    new CategoryRendererItem("industrial", new FillSymbol(0, "#cfbfb4", "#ddd0c7")),
+    new CategoryRendererItem("grass", new FillSymbol(0, "#cadcaf", "#dce8c8")),
+    new CategoryRendererItem("farmland", new FillSymbol(0, "#d4cea8", "#e4dfbd")),
+    new CategoryRendererItem("commercial", new FillSymbol(0, "#dcc7c1", "#ead9d1")),
+    new CategoryRendererItem("meadow", new FillSymbol(0, "#c3d8a8", "#d6e5bf")),
+    new CategoryRendererItem("retail", new FillSymbol(0, "#ddc0bd", "#ead0cd")),
+    new CategoryRendererItem("orchard", new FillSymbol(0, "#c5cf9d", "#d7dfb2")),
+    new CategoryRendererItem("military", new FillSymbol(0, "#d1adae", "#e3c4c2")),
+    new CategoryRendererItem("scrub", new FillSymbol(0, "#b6c9a0", "#c9d8b5")),
+    new CategoryRendererItem("recreation_ground", new FillSymbol(0, "#bad4b0", "#cfe4c6")),
+    new CategoryRendererItem("cemetery", new FillSymbol(0, "#b1c8ad", "#c8dac1")),
+    new CategoryRendererItem("farmyard", new FillSymbol(0, "#cec4a5", "#ded4b9")),
+    new CategoryRendererItem("quarry", new FillSymbol(0, "#c4bdb2", "#d8d1c7")),
+    new CategoryRendererItem("landfill", new FillSymbol(0, "#bdb7ad", "#d0c9c0")),
+    new CategoryRendererItem("heath", new FillSymbol(0, "#c5bea2", "#d8d0b5"))
   ]);
-  const mapDataSource = new CompositeMapDataSource([
-    // 高校名称暂留 GeoJSON，以继续使用原有的碰撞检测文字标注。
-    new StaticGeoJsonDataSource(vectorLayerNames),
-    new VectorTileDataSource({
-      urlTemplate: "/api/v1/map/tiles/base/{z}/{x}/{y}.mvt",
-      layers: [
-        { name: "公园绿地", sourceLayer: "park", renderer: new SimpleRenderer(GeometryType.Polygon, new FillSymbol(0.5, "#dce8d2", "#dce8d2")) },
-        { name: "行政边界", sourceLayer: "boundary", renderer: new SimpleRenderer(GeometryType.Polygon, new FillSymbol(1, "#ccd5c1", "#eef1e7")) },
-        { name: "外围水面", sourceLayer: "water", renderer: new SimpleRenderer(GeometryType.Polygon, new FillSymbol(0.5, "#dceff3", "#dceff3")) },
-        { name: "内部水面", sourceLayer: "water_detail", renderer: new SimpleRenderer(GeometryType.Polygon, new FillSymbol(1, "#9ed4de", "#9ed4de")) },
-        { name: "生活区", sourceLayer: "residential", renderer: new SimpleRenderer(GeometryType.Polygon, new FillSymbol(0.6, "#eadcc3", "#f3ead8")), minZoom: 3 },
-        { name: "教学区", sourceLayer: "study_area", renderer: new SimpleRenderer(GeometryType.Polygon, new FillSymbol(0.6, "#cbd1da", "#dde1e7")), minZoom: 2 },
-        { name: "快速道路", sourceLayer: "highway", renderer: new SimpleRenderer(GeometryType.Polyline, new LineSymbol(4, "#d48772")), minZoom: 2 },
-        { name: "道路", sourceLayer: "road", renderer: new SimpleRenderer(GeometryType.Polyline, new LineSymbol(2.5, "#ffffff")), minZoom: 2 }
-      ],
-      cacheSize: 128
-    })
-  ], STATIC_LAYER_CATALOG.map((layer) => layer.name));
+  const waterRenderer = new CategoryRenderer(surfaceClass, [
+    new CategoryRendererItem("water", new FillSymbol(0, "#9fc8dc", "#b8dbea")),
+    new CategoryRendererItem("riverbank", new FillSymbol(0, "#92c1d8", "#acd5e6")),
+    new CategoryRendererItem("reservoir", new FillSymbol(0, "#8fbdd2", "#a8d1e2")),
+    new CategoryRendererItem("dock", new FillSymbol(0, "#86b4cb", "#a1cadc")),
+    new CategoryRendererItem("wetland", new FillSymbol(0, "#9fc9c4", "#b8dbd4"))
+  ]);
+  const buildingRenderer = new SimpleRenderer(
+    GeometryType.Polygon,
+    new FillSymbol(0, "#b9ada0", "#d8cec2")
+  );
+  const parkingRenderer = new SimpleRenderer(
+    GeometryType.Polygon,
+    new FillSymbol(0, "#d2c9bb", "#ebe5da")
+  );
+  const boundaryRenderer = new SimpleRenderer(
+    GeometryType.Polygon,
+    new FillSymbol(0, "#7d8c89", "#f4f4ef")
+  );
+  const roadType = new Field("road_type");
+  const roadRenderer = new CategoryRenderer(roadType, [
+    new CategoryRendererItem("motorway", new LineSymbol(4.5, "#d85b43")),
+    new CategoryRendererItem("motorway_link", new LineSymbol(3.5, "#e37b61")),
+    new CategoryRendererItem("trunk", new LineSymbol(4, "#e28b42")),
+    new CategoryRendererItem("trunk_link", new LineSymbol(3.2, "#efa65f")),
+    new CategoryRendererItem("primary", new LineSymbol(3.5, "#e8b84f")),
+    new CategoryRendererItem("primary_link", new LineSymbol(3, "#efc96d")),
+    new CategoryRendererItem("secondary", new LineSymbol(3, "#f0d58a")),
+    new CategoryRendererItem("secondary_link", new LineSymbol(2.6, "#f3dda0")),
+    new CategoryRendererItem("tertiary", new LineSymbol(2.5, "#f4e6bc")),
+    new CategoryRendererItem("tertiary_link", new LineSymbol(2.2, "#f6edcf")),
+    new CategoryRendererItem("residential", new LineSymbol(1.7, "#ffffff")),
+    new CategoryRendererItem("living_street", new LineSymbol(1.5, "#f4f6f3")),
+    new CategoryRendererItem("service", new LineSymbol(1.2, "#dfe5df")),
+    new CategoryRendererItem("unclassified", new LineSymbol(1.5, "#e9ede8")),
+    new CategoryRendererItem("road", new LineSymbol(1.4, "#e7ebe6")),
+    new CategoryRendererItem("motorway_junction", new LineSymbol(2.5, "#d85b43"))
+  ]);
+  const mapDataSource = new VectorTileDataSource({
+    urlTemplate: "/api/v1/map/tiles/base/{z}/{x}/{y}.mvt",
+    layers: [
+      { name: "行政区域", sourceLayer: "boundary", renderer: boundaryRenderer, minZoom: 2 },
+      { name: "行政区边界", sourceLayer: "boundary_outline", renderer: new SimpleRenderer(GeometryType.Polyline, new LineSymbol(1.2, "#7d8c89")), minZoom: 2 },
+      { name: "土地覆盖", sourceLayer: "landcover", renderer: landcoverRenderer, minZoom: 3 },
+      { name: "水面", sourceLayer: "water", renderer: waterRenderer, minZoom: 2 },
+      { name: "建筑物", sourceLayer: "building", renderer: buildingRenderer, minZoom: 11 },
+      { name: "停车区域", sourceLayer: "parking", renderer: parkingRenderer, minZoom: 13 },
+      { name: "道路", sourceLayer: "road", renderer: roadRenderer, minZoom: 2 }
+    ],
+    cacheSize: 64
+  });
 
   const scene = await MapScene.create("map", mapDataSource);
   setupLayerManager(scene);
-  element("system-status").textContent = "组合矢量瓦片已启用";
+  element("system-status").textContent = "广州市域矢量底图已就绪";
 
   let pickMode: PickMode = null;
   let originPoint: LocalPoint | null = null;
@@ -210,34 +273,69 @@ async function bootstrap(): Promise<void> {
   let viewportTimer: number | undefined;
   let lastViewportKey = "";
   let viewportRequestToken = 0;
+  let viewportAnalysisEnabled = false;
+  let viewportAbortController: AbortController | undefined;
+  const viewportToggle = element<HTMLInputElement>("viewport-poi-toggle");
+  const viewportStatus = element("viewport-poi-status");
 
   const loadViewportPois = async (viewport = scene.getViewport()): Promise<void> => {
+    if (!viewportAnalysisEnabled) return;
     const key = viewport.map((value) => value.toFixed(2)).join(",");
     if (key === lastViewportKey) return;
-    lastViewportKey = key;
     const token = ++viewportRequestToken;
-    element("viewport-poi-status").textContent = "POI 加载中";
+    viewportAbortController?.abort();
+    const controller = new AbortController();
+    viewportAbortController = controller;
+    viewportStatus.textContent = "POI 分析中";
     try {
-      const result = await searchViewportPois(viewport, 10000);
-      if (token !== viewportRequestToken) return;
+      const result = await searchViewportPois(viewport, 10000, controller.signal);
+      if (!viewportAnalysisEnabled || token !== viewportRequestToken) return;
+      lastViewportKey = key;
       await scene.showPois(result.items);
-      element("viewport-poi-status").textContent = `${result.count} POI · 视口聚类`;
+      viewportStatus.textContent = `${result.count} POI · 视口聚类`;
     } catch (error) {
-      if (token !== viewportRequestToken) return;
-      element("viewport-poi-status").textContent = "POI 加载失败";
+      if (controller.signal.aborted || token !== viewportRequestToken) return;
+      viewportStatus.textContent = "POI 分析失败";
       console.error(error);
+    } finally {
+      if (viewportAbortController === controller) viewportAbortController = undefined;
     }
   };
 
   const scheduleViewportPois = (viewport: [number, number, number, number]): void => {
+    if (!viewportAnalysisEnabled) return;
     window.clearTimeout(viewportTimer);
+    viewportAbortController?.abort();
+    viewportRequestToken += 1;
+    viewportStatus.textContent = "等待视口稳定";
     viewportTimer = window.setTimeout((): void => {
       void loadViewportPois(viewport);
     }, 280);
   };
 
   const useQueryPoiLayer = (): void => {
+    window.clearTimeout(viewportTimer);
+    viewportAbortController?.abort();
     viewportRequestToken += 1;
+  };
+
+  const setViewportAnalysisEnabled = async (enabled: boolean): Promise<void> => {
+    viewportAnalysisEnabled = enabled;
+    viewportToggle.checked = enabled;
+    window.clearTimeout(viewportTimer);
+    viewportAbortController?.abort();
+    viewportAbortController = undefined;
+    viewportRequestToken += 1;
+    lastViewportKey = "";
+
+    if (enabled) {
+      viewportStatus.textContent = "POI 分析已开启";
+      await loadViewportPois();
+      return;
+    }
+
+    viewportStatus.textContent = "POI 分析已关闭";
+    await scene.clearViewportPois();
   };
 
   const setPickMode = (mode: PickMode): void => {
@@ -254,6 +352,9 @@ async function bootstrap(): Promise<void> {
   };
 
   scene.onViewportChange(scheduleViewportPois);
+  viewportToggle.addEventListener("change", () => {
+    void setViewportAnalysisEnabled(viewportToggle.checked);
+  });
   element("feature-detail-close").addEventListener("click", () => {
     scene.clearPoiSelection();
     hideFeatureDetail();
@@ -342,6 +443,7 @@ async function bootstrap(): Promise<void> {
       await scene.showRoute(route);
       renderRouteLegend([{ color: ROUTE_COLOR, label: "起点 → 终点" }]);
       resultCard("route-result", `
+        <div class="result-title"><span class="result-status-dot"></span><strong>路线已生成</strong><em>${travelModeLabel(route.travelMode)} · ${strategyLabel(route.strategy)}</em></div>
         <div class="result-metrics">
           <span><strong>${formatDistance(route.distanceLocal)}</strong><small>路线长度</small></span>
           <span><strong>${formatDuration(route.durationSeconds)}</strong><small>预计耗时</small></span>
@@ -489,6 +591,7 @@ async function bootstrap(): Promise<void> {
       })));
       const routeNames = escapeHtml(tour.visitOrder.map((index) => tourStops[index]?.label ?? `#${index}`).join(" → "));
       resultCard("tour-result", `
+        <div class="result-title"><span class="result-status-dot"></span><strong>游览顺序已优化</strong><em>${travelModeLabel(tour.travelMode)} · ${strategyLabel(tour.strategy)}</em></div>
         <strong class="route-order">${routeNames}</strong>
         <div class="result-metrics">
           <span><strong>${formatDistance(tour.totalDistanceLocal)}</strong><small>总长度</small></span>
@@ -590,7 +693,7 @@ async function bootstrap(): Promise<void> {
     hideFeatureDetail();
   });
 
-  await loadViewportPois();
+  await setViewportAnalysisEnabled(false);
 }
 
 bootstrap().catch((error) => {

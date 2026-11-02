@@ -7,6 +7,6 @@ export interface AdaptedFeatureSet {
 }
 
 /** 将外部格式适配为内部 Feature 模型。 */
-export interface FeatureAdapter<TInput> {
-    adapt(input: TInput): AdaptedFeatureSet;
+export interface FeatureAdapter<TInput, TOutput = AdaptedFeatureSet> {
+    adapt(input: TInput): TOutput;
 }

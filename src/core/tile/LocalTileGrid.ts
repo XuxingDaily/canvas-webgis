@@ -100,11 +100,11 @@ export class LocalTileGrid {
 export const LOCAL_TILE_GRID = new LocalTileGrid({
     // originX, originY, worldSpanLocal 共同决定 BBOX，即瓦片金字塔的范围，一般为正方形。
     // BBOX(originX, originY - worldSpanLocal, originX + worldSpanLocal, originY)
-    // 8192 也是 2 的幂，2^13 = 8192，使得每一个层级的瓦片尺寸都比较整齐
-    // tileLocalSize = 8192 / 2^z
-    originX: 46000,
-    originY: 24000,
-    worldSpanLocal: 8192,
+    // 覆盖广州数据 Web Mercator 包围盒的正方形范围。
+    // tileLocalSize = 262144 / 2^z
+    originX: 12550000,
+    originY: 2800000,
+    worldSpanLocal: 262144,
 
     // 一个瓦片在标准显示比例下，对应多少个逻辑屏幕像素
     // tilePixels 结合当前仿射矩阵的缩放参数，用于计算最合适的瓦片层级 zoom

@@ -1,3 +1,4 @@
+/** @module Geometry */
 export * from "./Extent";
 export * from "./Geometry";
 export * from "./Point";

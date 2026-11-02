@@ -1,2 +1,2 @@
+/** @module Interaction */
 export * from "./InteractionController";
-export * from "./Interaction";

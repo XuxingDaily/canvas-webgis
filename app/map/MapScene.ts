@@ -18,7 +18,7 @@ export interface MapLayerControl {
 }
 
 export const MAP_LAYER_CONTROLS: MapLayerControl[] = [
-  ...["公园绿地", "行政边界", "外围水面", "内部水面", "生活区", "教学区", "高校名称", "快速道路", "道路"]
+  ...["行政区域", "土地覆盖", "水面", "建筑物", "停车区域", "道路"]
     .map((label) => ({ id: label, label, group: "基础地图" as const })),
   { id: "poi", label: "普通 POI", group: "业务图层" },
   { id: "selected-poi", label: "选中 POI", group: "业务图层" },
@@ -34,20 +34,20 @@ export interface PoiMapTarget {
   pois: Poi[];
 }
 
-export const ROUTE_COLOR = "#d95d39";
+export const ROUTE_COLOR = "#1677ff";
 export const TOUR_LEG_COLORS = [
-  "#d95d39",
-  "#287271",
-  "#6c5ce7",
-  "#d18b20",
-  "#1f78b4",
-  "#b23a8a",
-  "#5b8c2a",
-  "#8c564b",
-  "#0096a6",
-  "#c44536",
-  "#4f6d7a",
-  "#7b2cbf"
+  "#1677ff",
+  "#00a870",
+  "#7b61ff",
+  "#0ea5a8",
+  "#f59e0b",
+  "#3b82f6",
+  "#10b981",
+  "#8b5cf6",
+  "#0891b2",
+  "#f97316",
+  "#2563eb",
+  "#059669"
 ] as const;
 
 export function tourLegColor(index: number): string {
@@ -82,7 +82,22 @@ export class MapScene {
 
   static async create(target: string, dataSource: MapDataSource): Promise<MapScene> {
     const layers = await dataSource.loadLayers();
-    return new MapScene(new gis.Map({ target, layers, zoom: 3, minZoom: 1, maxZoom: 9 }));
+    let extent: gis.Extent | undefined;
+    try {
+      const response = await fetch("/api/v1/map/tiles/bounds");
+      if (!response.ok) throw new Error(`行政区范围请求失败：${response.status}`);
+      const bounds = await response.json() as { minX: number; minY: number; maxX: number; maxY: number };
+      const padding = Math.max(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY) * 0.05;
+      extent = new gis.Extent(
+        bounds.maxY + padding,
+        bounds.minY - padding,
+        bounds.minX - padding,
+        bounds.maxX + padding
+      );
+    } catch (error) {
+      console.warn("无法读取行政区范围，回退到本地瓦片总范围。", error);
+    }
+    return new MapScene(new gis.Map({ target, layers, extent, zoom: 3, minZoom: 1, maxZoom: 18 }));
   }
 
   clearResults(): void {
@@ -125,7 +140,7 @@ export class MapScene {
     await this.addPoints([
       route.originSnap.snappedPoint,
       route.destinationSnap.snappedPoint
-    ], ["起", "终"]);
+    ], ["起", "终"], "路径点", ["#00a870", "#ff4d4f"]);
   }
 
   async showTour(tour: TourPlan): Promise<void> {
@@ -137,11 +152,21 @@ export class MapScene {
         `游览路线-${index + 1}`
       );
     }
-    await this.addPoints(tour.snappedStops.map((item) => item.snappedPoint), tour.snappedStops.map((_, index) => String(index + 1)));
+    await this.addPoints(
+      tour.snappedStops.map((item) => item.snappedPoint),
+      tour.snappedStops.map((_, index) => String(index + 1)),
+      "路径点",
+      tour.snappedStops.map((_, index) => index === 0 ? "#00a870" : "#1677ff")
+    );
   }
 
   async showPois(pois: Poi[]): Promise<void> {
     this.pois = pois;
+    await this.renderPoiLayers();
+  }
+
+  async clearViewportPois(): Promise<void> {
+    this.pois = [];
     await this.renderPoiLayers();
   }
 
@@ -260,7 +285,7 @@ export class MapScene {
       name: "吸附连线",
       type: gis.GeometryType.Polyline,
       data: line,
-      renderer: new gis.SimpleRenderer(gis.GeometryType.Polyline, new gis.LineSymbol(2, "#d95d39", [5, 20]))
+      renderer: new gis.SimpleRenderer(gis.GeometryType.Polyline, new gis.LineSymbol(2.5, "#1677ff", [6, 8]))
     });
     this.pushLayer(layer);
   }
@@ -268,29 +293,46 @@ export class MapScene {
   private async addRouteGeometry(wkts: string[], color: string, layerName: string): Promise<void> {
     const data = mergeCollections(wkts.map(lineWktToGeoJson));
     if (!data.features.length) return;
+    const casingName = `${layerName}-描边`;
+    const casing = createFeatureLayer({
+      name: casingName,
+      type: gis.GeometryType.Polyline,
+      data,
+      renderer: new gis.SimpleRenderer(
+        gis.GeometryType.Polyline,
+        new gis.LineSymbol(11, "rgba(255, 255, 255, 0.96)")
+      )
+    });
     const layer = createFeatureLayer({
       name: layerName,
       type: gis.GeometryType.Polyline,
       data,
-      renderer: new gis.SimpleRenderer(gis.GeometryType.Polyline, new gis.LineSymbol(6, color, [5, 20]))
+      renderer: new gis.SimpleRenderer(gis.GeometryType.Polyline, new gis.LineSymbol(6.5, color))
     });
+    this.resultLayerNames.add(casingName);
     this.resultLayerNames.add(layerName);
+    this.pushLayer(casing);
     this.pushLayer(layer);
   }
 
-  private async addPoints(points: LocalPoint[], labels: string[], layerName = "路径点"): Promise<void> {
+  private async addPoints(
+    points: LocalPoint[],
+    labels: string[],
+    layerName = "路径点",
+    colors: string[] = []
+  ): Promise<void> {
     const field = new gis.Field("label");
-    const renderer = new gis.CategoryRenderer(field, labels.map((label) => new gis.CategoryRendererItem(
+    const renderer = new gis.CategoryRenderer(field, labels.map((label, index) => new gis.CategoryRendererItem(
       label,
       new gis.LetterSymbol({
-        lineWidth: 2,
+        lineWidth: 3,
         strokeStyle: "#ffffff",
-        fillStyle: "#173f3a",
+        fillStyle: colors[index] ?? "#173f3a",
         letter: label,
-        radius: 12,
+        radius: 13,
         fontColor: "#ffffff",
         fontFamily: "sans-serif",
-        fontSize: 11
+        fontSize: 10
       })
     )));
     const layer = createFeatureLayer({
@@ -309,11 +351,12 @@ export class MapScene {
   }
 
   private layerNamesForControl(controlId: string): string[] {
+    if (controlId === "行政区域") return ["行政区域", "行政区边界"];
     if (controlId === "poi") return [POI_LAYER];
     if (controlId === "selected-poi") return [POI_SELECTION_LAYER];
     if (controlId === "selected-point") return [POINT_SELECTION_LAYER];
     if (controlId === "route") {
-      return Array.from(this.resultLayerNames).filter((name) => name === "规划路线" || name.startsWith("游览路线-"));
+      return Array.from(this.resultLayerNames).filter((name) => name.startsWith("规划路线") || name.startsWith("游览路线-"));
     }
     if (controlId === "route-point") return ["路径点", "选择点"];
     if (controlId === "snap-line") return ["吸附连线"];

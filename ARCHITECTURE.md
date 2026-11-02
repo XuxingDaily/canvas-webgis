@@ -1,4 +1,8 @@
-# WebGIS 前端架构
+# WebGIS 前端架构演进记录
+
+> 本文件保留早期重构目标和迁移顺序。当前实现、稳定模块边界和运行流程以
+> [`docs/architecture.md`](docs/architecture.md) 为准；公共接口以
+> [`docs/api-reference.md`](docs/api-reference.md) 为准。
 
 ## 设计目标
 

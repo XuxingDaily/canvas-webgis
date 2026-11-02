@@ -15,8 +15,13 @@ export interface LocalPoint {
 
 export interface Poi {
   id: number;
+  sourceId?: string;
   name: string;
   context?: string;
+  category?: string;
+  basicCategory?: string;
+  confidence?: number;
+  address?: string;
   location: LocalPoint;
   dataVersion?: number;
 }
