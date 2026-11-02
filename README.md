@@ -223,6 +223,7 @@ npm run build
 | [上手与使用案例](packages/webgis/docs/getting-started-and-examples.md) | 安装、初始化和常见场景 |
 | [公共 API Reference](packages/webgis/docs/api-reference.md) | 公共模块与 API 设计 |
 | [架构与模块](packages/webgis/docs/architecture.md) | 内核分层、依赖方向和扩展方式 |
+| [UML 类关系图](packages/webgis/docs/uml-class-diagram.md) | 地图、图层、要素、样式、Adapter 与瓦片调度关系 |
 | [前端测试与性能证据](packages/webgis/docs/frontend-testing-evidence.md) | 测试环境、样本和统计口径 |
 | [原始架构演进记录](packages/webgis/ARCHITECTURE.md) | 设计背景与演进决策 |
 

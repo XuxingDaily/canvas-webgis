@@ -9,7 +9,8 @@
    R-tree、专题渲染、标注、MVT、栅格瓦片和扩展接口。
 2. [公共 API Reference](api-reference.md)：按模块查询构造参数、属性、方法和约束。
 3. [架构与模块](architecture.md)：理解依赖方向、渲染流程、瓦片流程和扩展边界。
-4. [测试与性能证据](frontend-testing-evidence.md)：查看自动化测试、Packed R-tree 与 Canvas 基准方法及限制。
+4. [UML 类关系图](uml-class-diagram.md)：查看地图、图层、要素、样式、Adapter 和瓦片调度之间的关系。
+5. [测试与性能证据](frontend-testing-evidence.md)：查看自动化测试、Packed R-tree 与 Canvas 基准方法及限制。
 
 ## 自动生成的 API 文档
 
