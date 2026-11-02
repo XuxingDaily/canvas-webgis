@@ -1,7 +1,6 @@
 # 上手与使用案例
 
-本文示例均只从 `src/index.ts` 导入公共 API。示例中的 `../src/index` 需要按实际项目结构调整；
-库发布为独立包后可替换为包名。
+本文示例均只从 `@zhaolong/canvas-webgis` 包入口导入公共 API，不依赖内部文件路径。
 
 ## 1. 创建第一张地图
 
@@ -29,7 +28,7 @@ import {
   GeometryType,
   Map,
   SimpleRenderer
-} from "../src/index";
+} from "@zhaolong/canvas-webgis";
 
 const data: GeoJSON.FeatureCollection = {
   type: "FeatureCollection",
@@ -106,7 +105,7 @@ import {
   Feature,
   GeometryType,
   Point
-} from "../src/index";
+} from "@zhaolong/canvas-webgis";
 
 const featureClass = new ArrayFeatureClass(GeometryType.Point, {
   name: "采样点",
@@ -125,7 +124,7 @@ import {
   LetterSymbol,
   LineSymbol,
   PointSymbol
-} from "../src/index";
+} from "@zhaolong/canvas-webgis";
 
 const point = new PointSymbol(2, "#ffffff", "#3e8178", 8);
 const labeledPoint = new LetterSymbol({
@@ -162,7 +161,7 @@ import {
   CategoryRendererItem,
   Field,
   FieldDataType
-} from "../src/index";
+} from "@zhaolong/canvas-webgis";
 
 const roadType = new Field("road_type", FieldDataType.Text, "道路类型");
 const renderer = new CategoryRenderer(roadType, [
@@ -183,7 +182,7 @@ const renderer = CategoryRenderer.generate(featureClass, roadType);
 ### 4.3 数值分级
 
 ```ts
-import { ClassRenderer, Field, FieldDataType } from "../src/index";
+import { ClassRenderer, Field, FieldDataType } from "@zhaolong/canvas-webgis";
 
 const population = new Field("population", FieldDataType.Number, "人口");
 const renderer = ClassRenderer.generate(featureClass, population, 5);
@@ -199,7 +198,7 @@ import {
   Field,
   Label,
   TextSymbol
-} from "../src/index";
+} from "@zhaolong/canvas-webgis";
 
 const nameField = new Field("name");
 const collision = new CoverCollision();
@@ -274,7 +273,7 @@ import {
   SimpleRenderer,
   VectorTileLayer,
   VectorTileSource
-} from "../src/index";
+} from "@zhaolong/canvas-webgis";
 
 const grid = new LocalTileGrid({
   originX: 12550000,
@@ -330,7 +329,7 @@ import {
   Map,
   RasterTileLayer,
   RasterTileSource
-} from "../src/index";
+} from "@zhaolong/canvas-webgis";
 
 const source = new RasterTileSource({
   urlTemplate: "https://example.com/tiles/{z}/{x}/{y}.png",
@@ -376,7 +375,7 @@ import {
   PointSymbol,
   Renderer,
   Symbol
-} from "../src/index";
+} from "@zhaolong/canvas-webgis";
 
 class ConfidenceRenderer extends Renderer {
   getSymbol(feature: Feature): Symbol {
@@ -400,7 +399,7 @@ import {
   Field,
   FieldDataType,
   Point
-} from "../src/index";
+} from "@zhaolong/canvas-webgis";
 
 interface CsvPointRow {
   id: string;
@@ -432,7 +431,7 @@ Adapter 只负责格式转换，不负责请求数据或创建图层。
 继承 `Layer` 时需要实现范围和绘制逻辑；异步数据就绪后调用受保护的 `requestRender()`：
 
 ```ts
-import { Extent, Layer } from "../src/index";
+import { Extent, Layer } from "@zhaolong/canvas-webgis";
 
 class GridLayer extends Layer {
   constructor(private readonly bounds: Extent) {

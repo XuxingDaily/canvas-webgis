@@ -7,7 +7,7 @@ import {
   SimpleCollision,
   SimpleRenderer,
   TextSymbol
-} from "../../../src/index";
+} from "@zhaolong/canvas-webgis";
 import { loadFeatureLayer } from "../FeatureLayerFactory";
 import type { MapDataSource } from "./MapDataSource";
 import { STATIC_LAYER_CATALOG } from "./staticLayerCatalog";

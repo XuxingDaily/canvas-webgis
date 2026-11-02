@@ -6,8 +6,8 @@
 
 ```text
 nav-map-sys-front/
-├── src/    可复用 Canvas WebGIS 渲染库
-└── app/    广州导航业务应用
+├── packages/webgis/    可独立构建的 Canvas WebGIS 渲染库
+└── apps/navigation/    广州导航业务应用
 ```
 
 渲染库负责空间模型、要素组织、样式选择、图层调度、坐标变换、Canvas 绘制和地图交互；
@@ -36,7 +36,7 @@ Format Adapter                  Label / Collision
 - Format Adapter 只做外部格式到领域对象的转换；
 - Layer 组合数据源、样式和绘制后端；
 - Map 作为门面协调 View、Layer、Renderer 和 Interaction；
-- `app/` 可以依赖 `src/index.ts`，`src/` 不依赖 `app/`。
+- 导航应用只依赖 `@zhaolong/canvas-webgis`；渲染库不依赖导航应用。
 
 ## 3. 模块职责
 

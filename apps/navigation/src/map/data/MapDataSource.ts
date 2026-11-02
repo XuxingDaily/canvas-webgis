@@ -1,4 +1,4 @@
-import type { Layer } from "../../../src/index";
+import type { Layer } from "@zhaolong/canvas-webgis";
 
 export interface MapDataSource {
   readonly kind: "static-geojson" | "vector-tile";

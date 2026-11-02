@@ -7,6 +7,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
+$workspaceRoot = Split-Path -Parent (Split-Path -Parent $repoRoot)
 $temporaryBase = [IO.Path]::GetTempPath()
 $temporaryRoot = Join-Path $temporaryBase ("nav-map-render-bench-" + [guid]::NewGuid())
 $profilePath = Join-Path $temporaryRoot 'chrome-profile'
@@ -20,7 +21,7 @@ New-Item -ItemType Directory -Path $profilePath -Force | Out-Null
 
 try {
     $node = (Get-Command node -ErrorAction Stop).Source
-    $viteScript = Join-Path $repoRoot 'node_modules\vite\bin\vite.js'
+    $viteScript = Join-Path $workspaceRoot 'node_modules\vite\bin\vite.js'
     if (-not (Test-Path -LiteralPath $viteScript)) {
         throw 'Vite is not installed. Run npm install first.'
     }

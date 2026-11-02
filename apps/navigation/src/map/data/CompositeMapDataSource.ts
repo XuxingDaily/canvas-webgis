@@ -1,4 +1,4 @@
-import type { Layer } from "../../../src/index";
+import type { Layer } from "@zhaolong/canvas-webgis";
 import type { MapDataSource } from "./MapDataSource";
 
 /** 合并多个数据源，并按给定图层名称恢复统一绘制顺序。 */

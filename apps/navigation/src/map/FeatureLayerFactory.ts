@@ -5,7 +5,7 @@ import {
   Renderer,
   SimpleRenderer,
   type FeatureClassStorage
-} from "../../src/index";
+} from "@zhaolong/canvas-webgis";
 
 export interface FeatureLayerConfig {
   data: GeoJSON.FeatureCollection;

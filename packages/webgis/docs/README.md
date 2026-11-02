@@ -1,7 +1,7 @@
 # WebGIS 渲染库文档
 
-本目录描述 `src/` 中可复用的 Canvas WebGIS 渲染库。导航页面、HTTP 客户端和业务状态位于
-`app/`，不属于渲染库公共 API。
+本目录描述 `packages/webgis/src` 中的 Canvas WebGIS 渲染库。导航页面、HTTP 客户端和
+业务状态位于 `apps/navigation` workspace，不属于渲染库公共 API。
 
 ## 阅读顺序
 
@@ -41,15 +41,15 @@ import {
   GeometryType,
   SimpleRenderer,
   FillSymbol
-} from "../src/index";
+} from "@zhaolong/canvas-webgis";
 ```
 
-以下目录虽然存在，但不是渲染库 API：
+以下应用目录不是渲染库 API：
 
-- `app/api`：导航后端的 HTTP 客户端与 DTO；
-- `app/map`：业务地图场景、路线和 POI 展示；
-- `app/ui`：页面交互组件；
-- `public`：演示数据和静态资源。
+- `apps/navigation/src/api`：导航后端的 HTTP 客户端与 DTO；
+- `apps/navigation/src/map`：业务地图场景、路线和 POI 展示；
+- `apps/navigation/src/ui`：页面交互组件；
+- `apps/navigation/public`：业务演示数据和静态资源。
 
 ## 当前稳定性约定
 

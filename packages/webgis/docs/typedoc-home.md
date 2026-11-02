@@ -24,8 +24,7 @@ import {
   GeoJsonFeatureClassReader,
   Map,
   SimpleRenderer
-} from "../src/index";
+} from "@zhaolong/canvas-webgis";
 ```
 
-当前仓库尚未发布为 npm 包，因此示例仍使用源码相对路径。独立包构建与声明文件发布完成后，
-该路径将替换为正式包名。
+当前 workspace 已提供独立 ESM 构建和 TypeScript 声明文件；是否发布到 npm 由版本发布流程决定。

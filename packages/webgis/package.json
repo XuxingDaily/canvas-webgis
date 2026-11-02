@@ -1,0 +1,40 @@
+{
+  "name": "@zhaolong/canvas-webgis",
+  "version": "0.1.0",
+  "description": "A lightweight TypeScript and Canvas 2D vector map rendering library.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "vite build && tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "bench:spatial": "vitest run --config vitest.benchmark.config.ts",
+    "bench:render": "powershell -ExecutionPolicy Bypass -File benchmarks\\run-render-bench.ps1",
+    "docs": "typedoc",
+    "docs:check": "typedoc --emit none --treatWarningsAsErrors"
+  },
+  "dependencies": {
+    "@mapbox/vector-tile": "^3.0.0",
+    "pbf": "^5.1.2"
+  },
+  "devDependencies": {
+    "typedoc": "^0.28.20",
+    "typescript": "^5.7.3",
+    "vite": "6.4.5",
+    "vitest": "5.0.5"
+  }
+}

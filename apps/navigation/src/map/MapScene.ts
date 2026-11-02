@@ -1,6 +1,6 @@
-import * as gis from "../../src/index";
+import * as gis from "@zhaolong/canvas-webgis";
 import type { LocalPoint, Poi, RoutePlan, TourPlan } from "../api/types";
-import type { Layer } from "../../src/index";
+import type { Layer } from "@zhaolong/canvas-webgis";
 import { createFeatureLayer } from "./FeatureLayerFactory";
 import type { MapDataSource } from "./data/MapDataSource";
 import { lineWktToGeoJson } from "./wkt";

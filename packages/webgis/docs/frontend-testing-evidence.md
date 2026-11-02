@@ -31,8 +31,8 @@ npm run build
 ```
 
 2026-11-02 在广州 MVT 数据源、POI 视口聚类、导航路线样式以及 MVT Adapter 拆分后重新
-执行上述命令，5 个测试文件、17 项测试全部通过，TypeScript 检查成功。此前生产构建产物
-已同步到后端 `nav-server/src/main/resources/static`。
+执行上述命令，5 个测试文件、17 项测试全部通过，TypeScript 检查成功。workspace 拆分后，
+渲染库与导航应用分别输出到各自 `dist`，后端静态资源同步改为显式部署步骤。
 
 本次应用层验收同时核对：
 

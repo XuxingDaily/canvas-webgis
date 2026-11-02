@@ -3,25 +3,21 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "preview": "vite preview",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "bench:spatial": "vitest run --config vitest.benchmark.config.ts",
-    "bench:render": "powershell -ExecutionPolicy Bypass -File benchmarks\\run-render-bench.ps1",
-    "docs": "typedoc",
-    "docs:check": "typedoc --emit none --treatWarningsAsErrors"
-  },
-  "devDependencies": {
-    "typedoc": "^0.28.20",
-    "typescript": "^5.7.3",
-    "vite": "6.4.5",
-    "vitest": "5.0.5"
-  },
-  "dependencies": {
-    "@mapbox/vector-tile": "^3.0.0",
-    "pbf": "^5.1.2"
+    "dev": "npm run dev --workspace @zhaolong/navigation",
+    "build": "npm run build --workspace @zhaolong/canvas-webgis && npm run build --workspace @zhaolong/navigation",
+    "build:webgis": "npm run build --workspace @zhaolong/canvas-webgis",
+    "build:navigation": "npm run build --workspace @zhaolong/navigation",
+    "preview": "npm run preview --workspace @zhaolong/navigation",
+    "test": "npm run test:watch --workspace @zhaolong/canvas-webgis",
+    "test:run": "npm run test --workspace @zhaolong/canvas-webgis",
+    "bench:spatial": "npm run bench:spatial --workspace @zhaolong/canvas-webgis",
+    "bench:render": "npm run bench:render --workspace @zhaolong/canvas-webgis",
+    "docs": "npm run docs --workspace @zhaolong/canvas-webgis",
+    "docs:check": "npm run docs:check --workspace @zhaolong/canvas-webgis"
   }
 }

@@ -36,10 +36,10 @@ tile infrastructure ─→ format adapters / feature
 ## 目标目录
 
 ```text
-app/                    # 导航业务应用，不属于渲染库公共 API
-├── api/                # HTTP API 客户端与业务 DTO
-├── map/                # MapScene、数据源装配与 WKT 转换
-└── ui/                 # 页面交互组件
+../../apps/navigation/src/  # 导航业务应用，不属于渲染库公共 API
+├── api/                   # HTTP API 客户端与业务 DTO
+├── map/                   # MapScene、数据源装配与 WKT 转换
+└── ui/                    # 页面交互组件
 
 src/
 ├── core/
@@ -84,15 +84,16 @@ FeatureClass (abstract)
 ├── ArrayFeatureClass       # O(n) 线性范围查询
 └── RTreeFeatureClass       # packed R-tree 范围查询
 
-FeatureAdapter<TInput>
+FeatureAdapter<TInput, TOutput>
 ├── GeoJsonAdapter          # GeoJSON → Feature[] + Field[]
+├── MvtAdapter              # MVT → Map<sourceLayer, Feature[]>
 └── GeoJsonFeatureClassReader
     ├── ArrayFeatureClass
     └── RTreeFeatureClass
 ```
 
 `format` 只负责外部格式到领域对象的转换；网络请求和 FeatureLayer 装配位于
-`app/map/FeatureLayerFactory.ts`，不再由 `core/utils` 混合承担。
+`../../apps/navigation/src/map/FeatureLayerFactory.ts`，不再由 `core/utils` 混合承担。
 
 `FeatureClass` 表示已经物化到本地的同步要素集合。HTTP、MVT 瓦片流等异步能力属于
 `Source`，不强行塞进 FeatureClass。

@@ -1,5 +1,5 @@
 node_modules/
 dist/
-docs/api/
+packages/webgis/docs/api/
 .idea/
 *.log

@@ -5,9 +5,12 @@
 MVT，完成瓦片调度、Protobuf 解码、图层绘制、POI 聚类、几何拾取和路线展示。
 
 ```text
-src/   可复用 WebGIS 渲染内核
-app/   广州离线导航业务应用
+packages/webgis/   可独立构建的 Canvas WebGIS 渲染库
+apps/navigation/   广州离线导航业务应用
 ```
+
+根目录使用 npm workspaces 编排两个包。导航应用只通过
+`@zhaolong/canvas-webgis` 公共入口依赖渲染库，不直接引用库内部源码。
 
 ## 页面能力
 
@@ -31,7 +34,8 @@ app/   广州离线导航业务应用
 
 在 10 万点基准中，连续 100 次固定视口查询的累计 P50 由约 200 ms 降至 0.88 ms；
 Chrome Canvas 2D 的 600 帧基准中，平均帧绘制耗时由约 1.35 ms 降至 0.15 ms，P95
-由约 1.9 ms 降至 0.3 ms。测试方法和边界见[前端测试与性能证据](docs/frontend-testing-evidence.md)。
+由约 1.9 ms 降至 0.3 ms。测试方法和边界见
+[前端测试与性能证据](packages/webgis/docs/frontend-testing-evidence.md)。
 
 ## 数据链路
 
@@ -45,7 +49,7 @@ Spring Boot / PostGIS
 ```
 
 业务地图范围由 `GET /api/v1/map/tiles/bounds` 动态读取，页面不再依赖早期的小谷围岛
-静态 GeoJSON 作为主底图。`public/map` 中的文件仅保留作兼容与独立渲染示例。
+静态 GeoJSON 作为主底图。`apps/navigation/public/map` 中的文件仅保留作兼容示例。
 
 ## 启动与验证
 
@@ -66,8 +70,9 @@ npm run dev
 npm run build
 ```
 
-构建命令会先执行 TypeScript 类型检查，再将产物同步到相邻后端仓库的
-`nav-server/src/main/resources/static`，由 Spring Boot 直接托管。
+构建命令会分别生成 `packages/webgis/dist`（ESM 与 TypeScript 声明文件）和
+`apps/navigation/dist`（导航应用），不会隐式修改相邻后端仓库。需要由 Spring Boot
+托管时，再显式复制导航应用产物。
 
 ## 已接入接口
 
@@ -86,10 +91,10 @@ npm run build
 
 ## 文档
 
-- [文档索引](docs/README.md)
-- [上手与使用案例](docs/getting-started-and-examples.md)
-- [公共 API Reference](docs/api-reference.md)
-- 自动生成 API：执行 `npm run docs` 后打开 `docs/api/index.html`
-- [架构与模块](docs/architecture.md)
-- [前端测试与性能证据](docs/frontend-testing-evidence.md)
-- [原始架构演进记录](ARCHITECTURE.md)
+- [文档索引](packages/webgis/docs/README.md)
+- [上手与使用案例](packages/webgis/docs/getting-started-and-examples.md)
+- [公共 API Reference](packages/webgis/docs/api-reference.md)
+- 自动生成 API：执行 `npm run docs` 后打开 `packages/webgis/docs/api/index.html`
+- [架构与模块](packages/webgis/docs/architecture.md)
+- [前端测试与性能证据](packages/webgis/docs/frontend-testing-evidence.md)
+- [原始架构演进记录](packages/webgis/ARCHITECTURE.md)

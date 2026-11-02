@@ -1,4 +1,4 @@
-import { GeometryType } from "../../../src/index";
+import { GeometryType } from "@zhaolong/canvas-webgis";
 
 export interface StaticLayerDefinition {
   name: string;

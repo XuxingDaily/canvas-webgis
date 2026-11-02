@@ -5,7 +5,7 @@ import {
   Renderer,
   VectorTileLayer,
   VectorTileSource
-} from "../../../src/index";
+} from "@zhaolong/canvas-webgis";
 import type { MapDataSource } from "./MapDataSource";
 
 export interface VectorTileLayerDefinition {

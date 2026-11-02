@@ -1,4 +1,4 @@
-/** 导航业务应用入口；渲染库位于 ../src。 */
+/** 导航业务应用入口；渲染能力由 workspace 中的 WebGIS 包提供。 */
 import "./styles.css";
 import { searchNearbyPois, searchPois, searchViewportPois } from "./api/poi";
 import { planRoute, planTour, snapToRoad } from "./api/routing";
@@ -12,7 +12,7 @@ import {
   GeometryType,
   LineSymbol,
   SimpleRenderer
-} from "../src/index";
+} from "@zhaolong/canvas-webgis";
 import { MAP_LAYER_CONTROLS, MapScene, ROUTE_COLOR, tourLegColor, type PoiMapTarget } from "./map/MapScene";
 import { PoiAutocomplete } from "./ui/Autocomplete";
 import { formatDistance, formatDuration, requiredNumber } from "./ui/format";
