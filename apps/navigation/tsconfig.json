@@ -14,7 +14,6 @@
     "strictPropertyInitialization": false,
     "noImplicitThis": false,
     "skipLibCheck": true,
-    "baseUrl": ".",
     "paths": {
       "@zhaolong/canvas-webgis": ["../../packages/webgis/src/index.ts"]
     }
